@@ -30,7 +30,7 @@ const variables = [
   'Mode: M0.1',
   'Counter: MW10 write',
   'Input: I0.0',
-  'Missing: DB9,INT0',
+  'Missing: DB9,INT0 write',
 ].join('; ');
 
 const gladys = createFakeGladys({
