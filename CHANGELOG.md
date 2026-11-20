@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-20
+
 ### Added
 
 - Read the variables of a Siemens S7 PLC (S7-300, S7-400, S7-1200, S7-1500,
@@ -25,3 +27,6 @@ the notes of the version's GitHub Release.
 - Scene triggers: PLC lost, PLC back, variable no longer readable.
 - A "Siemens PLC" dashboard widget: first values and health of the link.
 - Documentation in English, French, German and Spanish.
+
+[Unreleased]: https://github.com/guim31/gladys-siemens-s7/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/guim31/gladys-siemens-s7/releases/tag/v1.0.0
