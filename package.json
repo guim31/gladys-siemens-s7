@@ -1,8 +1,8 @@
 {
-  "name": "gladys-integration-template-js",
+  "name": "gladys-siemens-s7",
   "version": "1.0.0",
   "private": true,
-  "description": "Official starter template to build an external integration for Gladys Assistant with the JavaScript SDK.",
+  "description": "Siemens S7 integration for Gladys Assistant: read and write the variables of an S7 PLC or a LOGO! (S7comm, ISO-on-TCP).",
   "type": "module",
   "main": "index.js",
   "scripts": {

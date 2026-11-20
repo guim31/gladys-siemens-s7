@@ -12,53 +12,16 @@ the notes of the version's GitHub Release.
 
 ### Added
 
-- A working example of scene triggers, scene actions and dashboard widgets
-  (Gladys 5.1.0 or later).
-- `CHANGELOG.md`, rolled by the Release workflow.
-- A GitHub Release for every version, with its changelog section as notes: the
-  Gladys Supervision page links each version to the repository's releases.
-- CI runs the tests on Node 22 and 24, and builds the Docker image.
-- Dependabot keeps the npm dependencies and the GitHub Actions up to date.
-- `SECURITY.md` (how to report a vulnerability) and `CLAUDE.md` (project rules
-  for contributors and coding assistants).
-- Manifest tests: `version` matches `package.json`, `docker_image` is tagged
-  with it, descriptions hold 10 to 100 characters, placeholders are
-  multi-language objects.
-- The latitude and longitude fields show an example value as placeholder.
-
-### Changed
-
-- Node.js 22 or later is required (Node 20 is end-of-life).
-- Integration SDK 0.16.1. The tests now run against the fake Gladys of the
-  SDK, which refuses the payloads Gladys refuses, including a device feature
-  missing `name`, `min`, `max`, `read_only` or `has_feedback`. A device
-  published with a `poll_frequency` is now polled without `should_poll: true`
-  on a recent core (an explicit `should_poll: false` opts out); the template
-  keeps the field explicit for the older cores.
-- The refresh interval is one minute minimum, the fastest Gladys polls a
-  device. The plug's power is only sent when it changes, and every 30
-  minutes otherwise.
-
-### Fixed
-
-- The switch, the light, the plug, the motion sensor and the camera could not
-  be added from the Discovery tab: their on/off, motion and image features had
-  no `min`/`max`, which Gladys requires (HTTP 422 "t_device_feature.min cannot
-  be null"). A test now checks that every feature carries the columns Gladys
-  needs to create it.
-- Gladys refused the devices of the Discovery tab: the weather station and
-  the plug declared their poll frequency in seconds instead of one of the
-  values Gladys accepts, and were never polled. They now poll every minute,
-  and the readings follow the refresh interval of the configuration.
-
-- The release commit no longer fails `npm run format:check`: the Release
-  workflow updates the manifest `version` and `docker_image` in place instead
-  of re-printing the whole file with `jq`.
-- The integration can write to `/data`: the image creates the directory owned
-  by the `node` user, a new Docker volume was owned by root.
-- A sub-container running the integration's own image follows it to the new
-  tag at each release, as well as in the manifest of the build summary: it kept
-  the previous tag, which may not exist on the registry. Sub-containers on a
-  third-party image (a broker, a database...) keep theirs.
-
-[Unreleased]: https://github.com/GladysAssistant/integration-template-js/commits/main
+- Read the variables of a Siemens S7 PLC (S7-300, S7-400, S7-1200, S7-1500,
+  ET 200SP) or a LOGO! 0BA7 / 0BA8 over the local network (S7comm, port 102):
+  one device for the PLC, one feature per declared variable, with its kind
+  and unit (temperature, power, energy in kWh, on/off…).
+- Addresses of DBs, merkers, inputs, outputs and LOGO! V memory, in the
+  Node-RED syntax (`DB1,REAL0`, `MW10`) or the TIA Portal one (`DB1.DBX0.1`).
+- Reading every 1 s to 1 min, all variables grouped; automatic reconnection.
+- Optional writing, off by default: dashboard on/off inputs and setpoints, a
+  "Write a value" action and scene action for the variables declared `write`.
+- "Check the configuration" and "Read an address" actions.
+- Scene triggers: PLC lost, PLC back, variable no longer readable.
+- A "Siemens PLC" dashboard widget: first values and health of the link.
+- Documentation in English, French, German and Spanish.
