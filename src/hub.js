@@ -19,7 +19,7 @@ import { localize, pick } from './i18n.js';
 import { createIssueLog } from './issues.js';
 import { KINDS, publishedUnit } from './kinds.js';
 import { STATUS, VARIABLE_ERRORS, itemCode, variableError } from './messages.js';
-import { decode, encode } from './s7/address.js';
+import { decode, encode, parseAddress } from './s7/address.js';
 import { S7Client } from './s7/client.js';
 import { ITEM_OK } from './s7/frames.js';
 import { WriteError, toState, toWrite } from './values.js';
@@ -74,12 +74,36 @@ export class S7Hub {
     this.flushing = Promise.resolve();
     this.generation = 0;
     this.connecting = null;
+    this.lifecycle = Promise.resolve();
+    this.stopped = false;
   }
 
   // --- Configuration and connection ----------------------------------------
 
-  async configure(config) {
-    await this.stop();
+  /**
+   * Apply a configuration. Configure and stop run one after the other; each
+   * first interrupts what runs (a connection attempt gives up at once).
+   */
+  configure(config) {
+    this.#interrupt();
+    return this.#chain(() => this.#configure(config));
+  }
+
+  stop() {
+    this.stopped = true;
+    this.#interrupt();
+    return this.#chain(() => this.#halt());
+  }
+
+  #chain(job) {
+    const run = this.lifecycle.then(job);
+    this.lifecycle = run.catch(() => {});
+    return run;
+  }
+
+  async #configure(config) {
+    await this.#halt();
+    this.stopped = false;
     this.generation += 1;
     this.config = config;
     this.latest.clear();
@@ -106,7 +130,8 @@ export class S7Hub {
     this.#schedule();
   }
 
-  async stop() {
+  /** Stop the timers and the connection now; what runs sees a new generation. */
+  #interrupt() {
     clearTimeout(this.pollTimer);
     this.pollTimer = null;
     clearTimeout(this.flushTimer);
@@ -115,21 +140,24 @@ export class S7Hub {
     const client = this.client;
     this.client = null;
     client?.close();
-    // A connection attempt in progress gives up at once.
     this.connecting?.close();
+  }
+
+  async #halt() {
+    this.#interrupt();
     await this.polling;
     await this.flushing;
   }
 
   #schedule() {
-    if (!this.timers || !this.target) {
+    if (!this.timers || !this.target || this.stopped) {
       return;
     }
     const generation = this.generation;
     this.pollTimer = setTimeout(async () => {
       this.pollTimer = null;
       await this.poll().catch((err) => logger.error(`Reading cycle failed: ${err.message}`));
-      if (generation === this.generation) {
+      if (generation === this.generation && !this.stopped) {
         this.#schedule();
       }
     }, this.intervalMs());
@@ -147,7 +175,7 @@ export class S7Hub {
   }
 
   async #pollNow() {
-    if (!this.target) {
+    if (!this.target || this.stopped) {
       return;
     }
     const generation = this.generation;
@@ -464,9 +492,11 @@ export class S7Hub {
   findVariable(text) {
     const wanted = String(text ?? '').trim();
     const lower = wanted.toLowerCase();
+    // An address in any accepted form: "DB1.DBX0.1", "V0.1", "db1,x0.1".
+    const address = parseAddress(wanted)?.text;
     return (
       this.variables.find((variable) => variable.name.toLowerCase() === lower) ??
-      this.variables.find((variable) => variable.address.text.toLowerCase() === lower)
+      this.variables.find((variable) => variable.address.text === address)
     );
   }
 
@@ -501,6 +531,9 @@ export class S7Hub {
     try {
       code = await client.write(variable.address, encode(variable.address, value));
     } catch (err) {
+      if (err.code === 'timeout') {
+        throw new WriteError('unknownResult');
+      }
       if (err.code === 'closed' || err.code === 'unreachable') {
         throw new WriteError('notConnected');
       }

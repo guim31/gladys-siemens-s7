@@ -57,7 +57,12 @@ export class WriteError extends Error {
  */
 export function toWrite(variable, input) {
   const { type } = variable.address;
-  const text = String(input).trim().replace(',', '.').toLowerCase();
+  const typed = String(input).trim();
+  // "1,000" is a thousand in English, 1 in French: refused rather than guessed.
+  if (/^-?\d{1,3}(,\d{3})+$/.test(typed) || (typed.includes(',') && typed.includes('.'))) {
+    throw new WriteError('ambiguous', { value: typed.slice(0, 30) });
+  }
+  const text = typed.replace(',', '.').toLowerCase();
   const words = { true: 1, false: 0, on: 1, off: 0 };
   const number = text in words ? words[text] : Number(text);
   if (text === '' || !Number.isFinite(number)) {
@@ -70,11 +75,11 @@ export function toWrite(variable, input) {
     }
     return type === 'bool' ? number === 1 : number;
   }
-  if (
-    (variable.min !== undefined && number < variable.min) ||
-    (variable.max !== undefined && number > variable.max)
-  ) {
-    throw new WriteError('outOfBounds', { min: variable.min ?? '-∞', max: variable.max ?? '∞' });
+  // The bounds the feature shows bound the writes too: the core never checks them.
+  const min = variable.min ?? definition.min;
+  const max = variable.max ?? definition.max;
+  if (number < min || number > max) {
+    throw new WriteError('outOfBounds', { min, max });
   }
   const { factor } = publishedUnit(variable.kind, variable.unit ?? definition.units[0]);
   const raw = (number / factor - (variable.offset ?? 0)) / (variable.scale ?? 1);
@@ -89,9 +94,13 @@ export function toWrite(variable, input) {
   if (Math.abs(raw - rounded) > 1e-9 * Math.max(1, Math.abs(raw))) {
     throw new WriteError('notInteger', { type: type.toUpperCase(), value: String(input) });
   }
-  const { min, max } = TYPES[type];
-  if (rounded < min || rounded > max) {
-    throw new WriteError('outOfRange', { type: type.toUpperCase(), min, max });
+  const range = TYPES[type];
+  if (rounded < range.min || rounded > range.max) {
+    throw new WriteError('outOfRange', {
+      type: type.toUpperCase(),
+      min: range.min,
+      max: range.max,
+    });
   }
   return rounded;
 }

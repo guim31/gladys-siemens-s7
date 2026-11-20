@@ -158,3 +158,33 @@ test('the scene action writes, and fails the action (not the scene) on a refusal
     await off.stop();
   }
 });
+
+test('a variable is found by its address in any accepted form', async () => {
+  const world = await heating({ allow_write: true });
+  try {
+    succeeded(await world.fake.action('write_value', { variable: 'MX0.0', value: '0' }));
+    assert.equal(world.plc.memory.M[0] & 1, 0);
+    // DB10.DBD12 is a DWORD, not the REAL setpoint DB10,REAL12: not found.
+    failed(await world.fake.action('write_value', { variable: 'DB10.DBD12', value: '1' }));
+    succeeded(await world.fake.action('write_value', { variable: 'db10,real12', value: '20' }));
+  } finally {
+    await world.stop();
+  }
+});
+
+test('configuration mistakes: twin names, one bound beyond the other', async () => {
+  const world = await heating({
+    variables: 'Pump: Q0.1; pump: Q0.2; Hot: DB10,REAL0 temperature min=200',
+  });
+  try {
+    const error = failed(await world.fake.action('check_config', {}));
+    assert.match(error.en, /Entry 2 \(pump\): this name is already used by entry 1/);
+    assert.match(error.en, /Entry 3 \(Hot\): min must be lower than max/);
+    assert.deepEqual(
+      world.device.features.map((feature) => feature.name),
+      ['Pump'],
+    );
+  } finally {
+    await world.stop();
+  }
+});

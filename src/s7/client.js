@@ -11,6 +11,7 @@
 //   refused      the PLC closes or refuses the connection: rack/slot or TSAP
 //   putGet       the CPU refuses the job: PUT/GET access off (S7-1200/1500)
 //   protocol     a frame the client does not understand
+//   timeout      no reply to a request (the connection is dropped)
 //   closed       the connection was closed (by stop() or by the PLC)
 // -----------------------------------------------------------------------------
 
@@ -143,6 +144,9 @@ export class S7Client extends EventEmitter {
 
   /** Close the connection; no 'close' event for a close asked here. */
   close() {
+    // A connection being opened gives up at once.
+    this.opening?.(new S7Error('closed', 'Connection closed'));
+    this.opening = null;
     const socket = this.socket;
     this.socket = null;
     this.connected = false;
@@ -186,6 +190,13 @@ export class S7Client extends EventEmitter {
       this.socket = socket;
       this.buffer = Buffer.alloc(0);
       this.fragments = [];
+      this.opening = (error) => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          reject(error);
+        }
+      };
       const timer = setTimeout(() => {
         if (!settled) {
           settled = true;
@@ -195,6 +206,7 @@ export class S7Client extends EventEmitter {
       }, this.timeoutMs);
       socket.once('connect', () => {
         clearTimeout(timer);
+        this.opening = null;
         socket.setNoDelay?.(true);
         if (!settled) {
           settled = true;
@@ -263,7 +275,8 @@ export class S7Client extends EventEmitter {
       }
       const timer = setTimeout(() => {
         if (this.pending?.timer === timer) {
-          const error = new S7Error('unreachable', 'No reply from the PLC');
+          // 'timeout': for a write, the PLC may have applied it anyway.
+          const error = new S7Error('timeout', 'No reply from the PLC');
           this.pending = null;
           reject(error);
           // A late reply would be taken for the next one: start over.

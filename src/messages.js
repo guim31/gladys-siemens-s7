@@ -113,6 +113,12 @@ export const VARIABLE_ERRORS = {
     de: ({ address, other }) => `${address} ist schon in Eintrag ${other} deklariert`,
     es: ({ address, other }) => `${address} ya está declarada en la entrada ${other}`,
   },
+  duplicateName: {
+    en: ({ other }) => `this name is already used by entry ${other}`,
+    fr: ({ other }) => `ce nom est déjà pris par l'entrée ${other}`,
+    de: ({ other }) => `dieser Name wird schon von Eintrag ${other} verwendet`,
+    es: ({ other }) => `este nombre ya lo usa la entrada ${other}`,
+  },
   unknownWord: {
     en: ({ word }) => `unknown word "${word}"`,
     fr: ({ word }) => `mot inconnu « ${word} »`,
@@ -218,6 +224,20 @@ export const WRITE_ERRORS = {
     fr: ({ value }) => `« ${value} » n'est pas un nombre.`,
     de: ({ value }) => `„${value}“ ist keine Zahl.`,
     es: ({ value }) => `«${value}» no es un número.`,
+  },
+  ambiguous: {
+    en: ({ value }) => `"${value}" is ambiguous: write 1000 or 1.5, without thousands separator.`,
+    fr: ({ value }) =>
+      `« ${value} » est ambigu : écrivez 1000 ou 1,5, sans séparateur de milliers.`,
+    de: ({ value }) =>
+      `„${value}“ ist mehrdeutig: Schreib 1000 oder 1,5, ohne Tausendertrennzeichen.`,
+    es: ({ value }) => `«${value}» es ambiguo: escriba 1000 o 1,5, sin separador de miles.`,
+  },
+  unknownResult: {
+    en: 'The PLC did not confirm the write: it may have been applied. Check the value.',
+    fr: "L'automate n'a pas confirmé l'écriture : elle a pu être appliquée. Vérifiez la valeur.",
+    de: 'Die SPS hat das Schreiben nicht bestätigt: Es wurde vielleicht ausgeführt. Prüfe den Wert.',
+    es: 'El PLC no confirmó la escritura: puede que se haya aplicado. Compruebe el valor.',
   },
   notBoolean: {
     en: ({ value }) => `"${value}": expected 0 or 1 (or true / false).`,

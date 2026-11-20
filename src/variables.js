@@ -119,11 +119,8 @@ export function parseVariables(text) {
         fail('unitOfKind', { unit: variable.unit, kind: variable.kind });
         return;
       }
-      if (
-        variable.min !== undefined &&
-        variable.max !== undefined &&
-        variable.min >= variable.max
-      ) {
+      // One bound given, the other from the kind: they must still be in order.
+      if ((variable.min ?? kind.min) >= (variable.max ?? kind.max)) {
         fail('minMax');
         return;
       }
@@ -131,18 +128,16 @@ export function parseVariables(text) {
         fail('tooMany', { max: MAX_VARIABLES });
         return;
       }
+      // A name picks the variable a scene writes: two alike would be a guess.
+      const twin = variables.find(
+        (other) => other.name.toLowerCase() === variable.name.toLowerCase(),
+      );
+      if (twin) {
+        fail('duplicateName', { other: twin.entry });
+        return;
+      }
       seen.set(address.text, entry);
       variables.push(variable);
     });
-  // Two entries with the same name: the second gets a number.
-  const used = new Set();
-  for (const variable of variables) {
-    const wanted = variable.name;
-    for (let n = 2; used.has(variable.name.toLowerCase()); n += 1) {
-      const suffix = ` ${n}`;
-      variable.name = `${wanted.slice(0, MAX_NAME - suffix.length)}${suffix}`;
-    }
-    used.add(variable.name.toLowerCase());
-  }
   return { variables, errors };
 }

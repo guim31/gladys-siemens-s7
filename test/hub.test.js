@@ -8,6 +8,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createFakeGladys } from '@gladysassistant/integration-sdk/testing';
 import { registerHandlers } from '../src/app.js';
+import { normalizeConfig } from '../src/config.js';
 import { S7Client } from '../src/s7/client.js';
 import { createFakePlc } from './helpers/fakePlc.js';
 import { HOST, captureLogs, createWorld } from './helpers/world.js';
@@ -451,4 +452,67 @@ test('stop() closes the connection and stops the timer', async () => {
   await world.stop();
   assert.equal(world.plc.sockets.size, 0);
   assert.equal(world.hub.pollTimer, null);
+});
+
+test('a write is bounded by the range the feature shows, even without min/max', async () => {
+  const world = await heating({
+    config: { allow_write: true, variables: 'Sp: DB10,REAL12 setpoint; Count: DB10,DINT18 write' },
+  });
+  try {
+    const hot = await world.fake.action('write_value', { variable: 'Sp', value: '500' });
+    assert.match(hot.error.en, /bounds declared for this variable \(0 to 100\)/);
+    assert.equal(world.plc.memory.DB[10].readFloatBE(12), 21);
+    const thousand = await world.fake.action('write_value', { variable: 'Count', value: '1,000' });
+    assert.match(thousand.error.fr, /« 1,000 » est ambigu/);
+    const mixed = await world.fake.action('write_value', { variable: 'Count', value: '1.000,5' });
+    assert.match(mixed.error.en, /ambiguous/);
+    assert.equal(world.plc.memory.DB[10].readInt32BE(18), 1234567);
+  } finally {
+    await world.stop();
+  }
+});
+
+test('a write the PLC does not confirm says so: it may have been applied', async () => {
+  const world = await heating({ config: { allow_write: true } });
+  try {
+    // The PLC goes silent: the write times out.
+    world.plc.sockets.forEach((socket) => {
+      socket.write = () => {};
+    });
+    const ack = await world.fake.action('write_value', { variable: 'Heating', value: '0' });
+    assert.match(ack.error.en, /did not confirm the write: it may have been applied/);
+  } finally {
+    await world.stop();
+  }
+});
+
+test('stop() during a connection attempt ends at once and arms no timer', async () => {
+  const plc = createFakePlc(heatingMemory());
+  plc.down = 'silent';
+  const gladys = createFakeGladys({ config: { host: HOST, variables: HEATING_VARIABLES } });
+  const app = registerHandlers(gladys, {
+    createClient: (options) => new S7Client({ ...options, createSocket: plc.createSocket }),
+  });
+  const connecting = gladys.connect();
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  const started = Date.now();
+  await app.stop();
+  await connecting;
+  await app.ready;
+  await app.hub.lifecycle;
+  assert.ok(Date.now() - started < 1000, 'not the 5 s connection timeout');
+  assert.equal(app.hub.pollTimer, null);
+});
+
+test('configurations applied back to back run one after the other', async () => {
+  const world = await heating({ config: { interval: '60' } });
+  try {
+    const config = normalizeConfig({ host: HOST, variables: HEATING_VARIABLES, interval: '60' });
+    world.hub.timers = true;
+    await Promise.all([world.hub.configure(config), world.hub.configure(config)]);
+    assert.ok(world.hub.pollTimer, 'one timer');
+    assert.equal(world.plc.sockets.size, 1, 'one connection');
+  } finally {
+    await world.stop();
+  }
 });
