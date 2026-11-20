@@ -9,15 +9,16 @@ A Gladys Assistant **external integration**: a Node.js service (Node 22+, ESM,
 no build step) that runs in its own sandboxed Docker container and talks to
 Gladys through
 [`@gladysassistant/integration-sdk`](https://github.com/GladysAssistant/integration-sdk-js),
-its only runtime dependency. It started from the official JavaScript template.
+its only runtime dependency (the S7 client is in `src/s7/`). It started from
+the official JavaScript template.
 
 ## Commands
 
 ```bash
 npm install
 npm test                                  # node --test, the built-in runner
-node --test test/devices.test.js          # one file
-node --test --test-name-pattern "plug"    # tests whose name matches
+node --test test/hub.test.js              # one file
+node --test --test-name-pattern "write"   # tests whose name matches
 npm run lint                              # ESLint
 npm run format:check                      # Prettier, as the CI runs it
 npm run format                            # Prettier, fix in place
@@ -32,15 +33,22 @@ pushing.
 
 ```
 index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
-src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
-src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
-gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
-test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+src/app.js                        every SDK handler, shared by index.js and the tests
+src/hub.js                        one PLC: reading cycle, reconnection, device, flush, writes, triggers
+src/s7/address.js                 S7 address syntax, canonical form, feature keys, encode/decode
+src/s7/frames.js                  TPKT, COTP, S7comm frames (setup, read, write) and their replies
+src/s7/client.js                  one TCP connection: handshake, packed reads, writes, timeouts
+src/variables.js                  the "Variables" field: entries, kinds, options
+src/values.js                     PLC values <-> Gladys states, write conversion and range checks
+src/kinds.js                      kinds (temperature, energy, switch...) -> category/type/unit
+src/actions.js                    check_config, read_address, write_value (button and scene action)
+src/widgets.js                    the "Siemens PLC" widget
+src/messages.js, src/i18n.js      the four languages of every text the container sends
+src/config.js                     DEFAULT_CONFIG (mirrors the manifest) + PLC types, rack/slot, TSAP
+scripts/live-check.mjs            run against a real S7 server (Snap7), never by npm test
+scripts/snap7/                    the Snap7 test server image (python-snap7)
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (mandatory)
+test/                             node --test, fake Gladys of the SDK + fake PLC speaking S7comm
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -58,7 +66,7 @@ test/                             node --test, against the SDK's fake Gladys (in
   one, `0`/`0` for a feature without a range (text, image...). A missing one
   can pass the publication on a core that does not check it, then fail when
   the user clicks "Add" (HTTP 422 `t_device_feature.min cannot be null`). The
-  SDK's fake Gladys refuses it on publication, and `test/devices.test.js`
+  SDK's fake Gladys refuses it on publication, and `test/gladys-rules.test.js`
   checks them.
 - **The container rootfs is read-only.** Write only under `/data`, the one
   writable volume. Never log tokens, passwords or API keys.
@@ -78,8 +86,8 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** is in English, French, German and Spanish: action
+  messages, manifest texts, and `docs/*.md`, kept in sync.
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -259,3 +267,40 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - Docs `en`, `fr`, `de`, `es` avec les mêmes sections.
 - Chauffe, ouverture, sécurité : ne rien rendre pilotable « comme un thermostat » ou par un assistant
   vocal quand une erreur serait dangereuse (leçon d'OctoPrint).
+
+## Intégration Siemens S7 (propre à ce dépôt)
+
+- **Client S7 maison** (`src/s7/`, sans dépendance), écrit d'après Snap7, nodes7 et le dissecteur
+  Wireshark, vérifié octet par octet contre un vrai serveur Snap7 (`test/fixtures/snap7-frames.js`).
+  Écarté : `nodes7` (plus maintenu depuis 2022, pas de réassemblage TCP, reconnexion muette sur un
+  rack/slot refusé, journaux sur la console) et `@st-one-io/nodes7` (GPL-3.0, incompatible avec un
+  dépôt Apache-2.0 publié en image).
+- **Un automate, un appareil** : `plc:<hôte>-<port>` tel que saisi. Une fonctionnalité par variable :
+  `a-<adresse canonique>` (`DB1.DBX0.1`, `db1,x0.1` et `V0.1` donnent tous `a-db1-x0-1` ; `VW10` =
+  `DB1,WORD10`). **Le type fait partie de la clé** (`DB1,INT4` ≠ `DB1,WORD4`). Ne jamais changer ce
+  calcul (`featureKey`, forme canonique de `parseAddress`).
+- **L'adresse fixe le type** : `DBW`/`MW`/`VW` = WORD non signé, `DBD`/`MD` = DWORD (pas un REAL : la
+  syntaxe TIA `DBD` sert souvent à un REAL, il faut écrire `DB1,REAL8`), `MI`/`VI` = INT signé.
+  L'appareil est donc publié dès la configuration, automate éteint, sans cache sous `/data`.
+- **Sondage par le conteneur** à l'intervalle choisi (1 à 60 s), `should_poll: false` (5 s n'est pas
+  dans la liste du cœur) : un minuteur, une lecture à la fois (`poll()` chaîné). Lecture groupée :
+  un item par variable, 20 items au plus par requête, requête et réponse dans le PDU négocié. Un bit
+  lit son octet. Flush `max(intervalle, n × 60 s / 240)`, heartbeat 6 h.
+- **Reconnexion** : 5, 10, 30 puis 60 s entre deux essais (au moins l'intervalle). Une seule ligne de
+  journal à la perte et une au retour, un seul déclencheur.
+- **Erreurs** : en-tête 0x8104 = PUT/GET désactivé (S7-1200/1500) ; codes d'item 0x05 = hors limites
+  (DB trop court ou optimisé), 0x0A = DB absent, 0x03 = accès refusé. Une connexion fermée ou un COTP
+  DR pendant la poignée de main = rack/slot ou TSAP refusé.
+- **Écriture** : `allow_write` **et** `write` (ou `switch`/`setpoint`). Un bit s'écrit en transport BIT
+  (les autres bits de l'octet ne bougent pas), le reste en octets. Relecture après écriture.
+- **LOGO!** : TSAP local client `01.00`, TSAP distant (serveur LOGO!) `02.00` par défaut, la VM est le
+  DB1.
+
+### Pièges relevés contre Snap7 (20/11/2026)
+
+- **Le serveur Snap7 accepte n'importe quel rack/slot et n'a pas de réglage PUT/GET** : ces refus ne
+  sont testables qu'avec le faux automate (`test/helpers/fakePlc.js`), sur le comportement documenté
+  d'un vrai CPU (COTP DR, erreur 0x8104).
+- Un item refusé par Snap7 a une longueur non nulle (`0a 00 00 04`) : ne jamais avancer de cette
+  longueur pour un item en erreur, seulement des 4 octets d'en-tête.
+- Un REAL relu donne 38.700001 pour 38.7 : arrondir à 7 chiffres significatifs (`toPrecision(7)`).

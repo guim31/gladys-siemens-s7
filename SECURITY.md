@@ -28,8 +28,14 @@ Gladys before reporting a problem.
 
 ## Scope
 
-In scope: the code of this repository and the Docker image it publishes.
+In scope: the code of this repository and the Docker image it publishes. The
+integration stores nothing under `/data` and handles no secret: the S7
+protocol has no authentication. It opens one TCP connection, on the local
+network, to the PLC address configured (port 102 by default), and accepts no
+incoming connection. It writes to the PLC only when the user turned writing on,
+and only the variables declared writable.
 
 Out of scope: Gladys Assistant itself (see its
 [security policy](https://github.com/GladysAssistant/Gladys/security/policy)),
-and the third-party services and devices the integration talks to.
+the PLC and its firmware, and the S7 protocol, which has no encryption nor
+authentication by design.

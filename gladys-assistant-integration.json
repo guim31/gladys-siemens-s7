@@ -1,101 +1,526 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "Siemens S7",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Read and write the variables of a Siemens S7 PLC (S7-300 to S7-1500, LOGO!) on the local network.",
+    "fr": "Lire et écrire les variables d'un automate Siemens S7 (S7-300 à S7-1500, LOGO!) en local.",
+    "de": "Variablen einer Siemens-S7-SPS (S7-300 bis S7-1500, LOGO!) im lokalen Netz lesen und schreiben.",
+    "es": "Leer y escribir las variables de un PLC Siemens S7 (S7-300 a S7-1500, LOGO!) en la red local."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
+  "docker_image": "ghcr.io/guim31/gladys-siemens-s7:1.0.0",
   "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-siemens-s7/main/cover.png",
+  "categories": ["protocols"],
+  "transports": ["local"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Getting started",
+        "fr": "Pour commencer",
+        "de": "Erste Schritte",
+        "es": "Para empezar"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "Enter the IP address of the PLC and its type, declare the variables to read (DB1,REAL0, M0.1, VW10...), save, and add the PLC from the Discovery tab: each variable becomes a feature. S7-1200/1500: allow PUT/GET access first.",
+        "fr": "Saisissez l'adresse IP de l'automate et son type, déclarez les variables à lire (DB1,REAL0, M0.1, VW10…), enregistrez et ajoutez l'automate depuis l'onglet Découverte : chaque variable devient une fonctionnalité. S7-1200/1500 : autorisez d'abord l'accès PUT/GET.",
+        "de": "Gib die IP-Adresse der SPS und ihren Typ ein, deklariere die zu lesenden Variablen (DB1,REAL0, M0.1, VW10…), speichere und füge die SPS im Tab „Entdecken“ hinzu: Jede Variable wird eine Funktion. S7-1200/1500: Erlaube zuerst den PUT/GET-Zugriff.",
+        "es": "Introduzca la dirección IP del PLC y su tipo, declare las variables que se van a leer (DB1,REAL0, M0.1, VW10…), guarde y añada el PLC desde la pestaña Descubrimiento: cada variable se convierte en una función. S7-1200/1500: permita antes el acceso PUT/GET."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://github.com/guim31/gladys-siemens-s7/blob/main/docs/en.md#variables",
+          "label": {
+            "en": "Variables syntax",
+            "fr": "Syntaxe des variables",
+            "de": "Syntax der Variablen",
+            "es": "Sintaxis de las variables"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
-    },
-    {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
-    },
-    {
-      "key": "unit",
+      "key": "language",
       "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
+      "label": {
+        "en": "Language of the messages",
+        "fr": "Langue des messages",
+        "de": "Sprache der Meldungen",
+        "es": "Idioma de los mensajes"
+      },
+      "description": {
+        "en": "Used for the texts given to the scenes and the action messages.",
+        "fr": "Utilisée pour les textes transmis aux scènes et les messages des actions.",
+        "de": "Wird für die an Szenen übergebenen Texte und die Meldungen der Aktionen verwendet.",
+        "es": "Se utiliza para los textos transmitidos a las escenas y los mensajes de las acciones."
+      },
       "required": false,
-      "default": "celsius",
+      "default": "fr",
       "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "Anglais",
+            "de": "Englisch",
+            "es": "Inglés"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "French",
+            "fr": "Français",
+            "de": "Französisch",
+            "es": "Francés"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "German",
+            "fr": "Allemand",
+            "de": "Deutsch",
+            "es": "Alemán"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Spanish",
+            "fr": "Espagnol",
+            "de": "Spanisch",
+            "es": "Español"
+          }
+        }
       ]
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "key": "plc",
+      "type": "section",
+      "label": {
+        "en": "PLC",
+        "fr": "Automate",
+        "de": "SPS",
+        "es": "PLC"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "Give the PLC a fixed IP address: Gladys identifies it by its address and port.",
+        "fr": "Donnez une adresse IP fixe à l'automate : Gladys l'identifie par son adresse et son port.",
+        "de": "Gib der SPS eine feste IP-Adresse: Gladys erkennt sie an Adresse und Port.",
+        "es": "Asigne una dirección IP fija al PLC: Gladys lo identifica por su dirección y su puerto."
+      }
+    },
+    {
+      "key": "host",
+      "type": "string",
+      "label": {
+        "en": "PLC IP address",
+        "fr": "Adresse IP de l'automate",
+        "de": "IP-Adresse der SPS",
+        "es": "Dirección IP del PLC"
+      },
+      "placeholder": {
+        "en": "e.g. 192.168.1.50",
+        "fr": "ex. 192.168.1.50",
+        "de": "z. B. 192.168.1.50",
+        "es": "p. ej. 192.168.1.50"
+      },
+      "required": false
+    },
+    {
+      "key": "port",
+      "type": "number",
+      "label": {
+        "en": "TCP port",
+        "fr": "Port TCP",
+        "de": "TCP-Port",
+        "es": "Puerto TCP"
+      },
+      "description": {
+        "en": "102 for every S7 PLC; change it only behind a gateway.",
+        "fr": "102 pour tout automate S7 ; à changer seulement derrière une passerelle.",
+        "de": "102 für jede S7-SPS; nur hinter einem Gateway ändern.",
+        "es": "102 para cualquier PLC S7; cámbielo solo detrás de una pasarela."
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": 102,
+      "min": 1,
+      "max": 65535
+    },
+    {
+      "key": "plc_type",
+      "type": "select",
+      "label": {
+        "en": "PLC type",
+        "fr": "Type d'automate",
+        "de": "SPS-Typ",
+        "es": "Tipo de PLC"
+      },
+      "description": {
+        "en": "Sets how the CPU is reached (rack and slot, or TSAP for a LOGO!).",
+        "fr": "Fixe la façon de joindre le CPU (rack et slot, ou TSAP pour un LOGO!).",
+        "de": "Legt fest, wie die CPU erreicht wird (Rack und Slot oder TSAP bei einer LOGO!).",
+        "es": "Define cómo se accede a la CPU (rack y slot, o TSAP para un LOGO!)."
+      },
+      "required": false,
+      "default": "s7_1200_1500",
+      "options": [
+        {
+          "value": "s7_1200_1500",
+          "label": {
+            "en": "S7-1200, S7-1500, ET 200SP (rack 0, slot 1)",
+            "fr": "S7-1200, S7-1500, ET 200SP (rack 0, slot 1)",
+            "de": "S7-1200, S7-1500, ET 200SP (Rack 0, Slot 1)",
+            "es": "S7-1200, S7-1500, ET 200SP (rack 0, slot 1)"
+          }
+        },
+        {
+          "value": "s7_300",
+          "label": {
+            "en": "S7-300 (rack 0, slot 2)",
+            "fr": "S7-300 (rack 0, slot 2)",
+            "de": "S7-300 (Rack 0, Slot 2)",
+            "es": "S7-300 (rack 0, slot 2)"
+          }
+        },
+        {
+          "value": "logo",
+          "label": {
+            "en": "LOGO! 0BA7 / 0BA8 (TSAP)",
+            "fr": "LOGO! 0BA7 / 0BA8 (TSAP)",
+            "de": "LOGO! 0BA7 / 0BA8 (TSAP)",
+            "es": "LOGO! 0BA7 / 0BA8 (TSAP)"
+          }
+        },
+        {
+          "value": "custom",
+          "label": {
+            "en": "Other: rack and slot below (S7-400...)",
+            "fr": "Autre : rack et slot ci-dessous (S7-400…)",
+            "de": "Andere: Rack und Slot unten (S7-400…)",
+            "es": "Otro: rack y slot abajo (S7-400…)"
+          }
+        }
+      ]
+    },
+    {
+      "key": "rack",
+      "type": "number",
+      "label": {
+        "en": "Rack",
+        "fr": "Rack",
+        "de": "Rack",
+        "es": "Rack"
+      },
+      "description": {
+        "en": "Used with the type Other only.",
+        "fr": "Utilisé avec le type Autre seulement.",
+        "de": "Nur mit dem Typ Andere verwendet.",
+        "es": "Solo se usa con el tipo Otro."
+      },
+      "required": false,
+      "default": 0,
+      "min": 0,
+      "max": 7
+    },
+    {
+      "key": "slot",
+      "type": "number",
+      "label": {
+        "en": "Slot",
+        "fr": "Slot",
+        "de": "Slot",
+        "es": "Slot"
+      },
+      "description": {
+        "en": "Used with the type Other only. S7-400: usually 3.",
+        "fr": "Utilisé avec le type Autre seulement. S7-400 : souvent 3.",
+        "de": "Nur mit dem Typ Andere verwendet. S7-400: meist 3.",
+        "es": "Solo se usa con el tipo Otro. S7-400: a menudo 3."
+      },
+      "required": false,
+      "default": 1,
+      "min": 0,
+      "max": 31
+    },
+    {
+      "key": "local_tsap",
+      "type": "string",
+      "label": {
+        "en": "LOGO! remote TSAP (client side)",
+        "fr": "TSAP distant du LOGO! (côté client)",
+        "de": "Entfernter TSAP der LOGO! (Client-Seite)",
+        "es": "TSAP remoto del LOGO! (lado cliente)"
+      },
+      "description": {
+        "en": "LOGO! only: the \"Remote TSAP\" of the server connection in LOGO!Soft Comfort.",
+        "fr": "LOGO! seulement : le « TSAP distant » de la liaison serveur dans LOGO!Soft Comfort.",
+        "de": "Nur LOGO!: der „entfernte TSAP“ der Serververbindung in LOGO!Soft Comfort.",
+        "es": "Solo LOGO!: el «TSAP remoto» de la conexión de servidor en LOGO!Soft Comfort."
+      },
+      "required": false,
+      "default": "01.00"
+    },
+    {
+      "key": "remote_tsap",
+      "type": "string",
+      "label": {
+        "en": "LOGO! local TSAP (server side)",
+        "fr": "TSAP local du LOGO! (côté serveur)",
+        "de": "Lokaler TSAP der LOGO! (Server-Seite)",
+        "es": "TSAP local del LOGO! (lado servidor)"
+      },
+      "description": {
+        "en": "LOGO! only: the \"Local TSAP\" of the server connection in LOGO!Soft Comfort.",
+        "fr": "LOGO! seulement : le « TSAP local » de la liaison serveur dans LOGO!Soft Comfort.",
+        "de": "Nur LOGO!: der „lokale TSAP“ der Serververbindung in LOGO!Soft Comfort.",
+        "es": "Solo LOGO!: el «TSAP local» de la conexión de servidor en LOGO!Soft Comfort."
+      },
+      "required": false,
+      "default": "02.00"
+    },
+    {
+      "key": "variables_section",
+      "type": "section",
+      "label": {
+        "en": "Variables",
+        "fr": "Variables",
+        "de": "Variablen",
+        "es": "Variables"
+      },
+      "description": {
+        "en": "Up to 100 variables. Writing a wrong variable can stop or damage an installation: declare \"write\" only what Gladys must change.",
+        "fr": "Jusqu'à 100 variables. Écrire une mauvaise variable peut arrêter ou abîmer une installation : ne déclarez « write » que ce que Gladys doit modifier.",
+        "de": "Bis zu 100 Variablen. Eine falsche Variable zu schreiben kann eine Anlage stoppen oder beschädigen: Deklariere nur als „write“, was Gladys ändern muss.",
+        "es": "Hasta 100 variables. Escribir una variable equivocada puede detener o dañar una instalación: declare «write» solo lo que Gladys deba cambiar."
+      }
+    },
+    {
+      "key": "variables",
+      "type": "string",
+      "label": {
+        "en": "Variables",
+        "fr": "Variables",
+        "de": "Variablen",
+        "es": "Variables"
+      },
+      "description": {
+        "en": "Entries separated by semicolons: name: address, then kind, write and options. Addresses: DB1,REAL0 DB1,INT2 DB1,X4.0 M0.1 MW10 MD12 I0.0 Q0.1 VW10. Kinds: temperature, humidity, pressure, power, energy, production, solar_power, grid_power, voltage, current, battery, volume, duration, value, binary, switch, setpoint. Options: scale= offset= unit= min= max= precision=.",
+        "fr": "Entrées séparées par des points-virgules : nom: adresse, puis nature, write et options. Adresses : DB1,REAL0 DB1,INT2 DB1,X4.0 M0.1 MW10 MD12 I0.0 Q0.1 VW10. Natures : temperature, humidity, pressure, power, energy, production, solar_power, grid_power, voltage, current, battery, volume, duration, value, binary, switch, setpoint. Options : scale= offset= unit= min= max= precision=.",
+        "de": "Einträge durch Semikolons getrennt: Name: Adresse, dann Art, write und Optionen. Adressen: DB1,REAL0 DB1,INT2 DB1,X4.0 M0.1 MW10 MD12 I0.0 Q0.1 VW10. Arten: temperature, humidity, pressure, power, energy, production, solar_power, grid_power, voltage, current, battery, volume, duration, value, binary, switch, setpoint. Optionen: scale= offset= unit= min= max= precision=.",
+        "es": "Entradas separadas por punto y coma: nombre: dirección, luego tipo, write y opciones. Direcciones: DB1,REAL0 DB1,INT2 DB1,X4.0 M0.1 MW10 MD12 I0.0 Q0.1 VW10. Tipos: temperature, humidity, pressure, power, energy, production, solar_power, grid_power, voltage, current, battery, volume, duration, value, binary, switch, setpoint. Opciones: scale= offset= unit= min= max= precision=."
+      },
+      "placeholder": {
+        "en": "Boiler: DB1,REAL0 temperature; Pump: Q0.1 switch",
+        "fr": "Chaudière: DB1,REAL0 temperature; Pompe: Q0.1 switch",
+        "de": "Kessel: DB1,REAL0 temperature; Pumpe: Q0.1 switch",
+        "es": "Caldera: DB1,REAL0 temperature; Bomba: Q0.1 switch"
+      },
+      "required": false
+    },
+    {
+      "key": "interval",
+      "type": "select",
+      "label": {
+        "en": "Reading interval",
+        "fr": "Intervalle de lecture",
+        "de": "Leseintervall",
+        "es": "Intervalo de lectura"
+      },
+      "description": {
+        "en": "How often the PLC is read. Gladys accepts 300 values a minute: with many variables, the values are sent less often.",
+        "fr": "Fréquence de lecture de l'automate. Gladys accepte 300 valeurs par minute : avec beaucoup de variables, elles sont envoyées moins souvent.",
+        "de": "Wie oft die SPS gelesen wird. Gladys nimmt 300 Werte pro Minute an: Bei vielen Variablen werden sie seltener gesendet.",
+        "es": "Frecuencia de lectura del PLC. Gladys acepta 300 valores por minuto: con muchas variables, se envían con menos frecuencia."
+      },
+      "required": false,
+      "default": "5",
+      "options": [
+        {
+          "value": "1",
+          "label": {
+            "en": "1 second",
+            "fr": "1 seconde",
+            "de": "1 Sekunde",
+            "es": "1 segundo"
+          }
+        },
+        {
+          "value": "2",
+          "label": {
+            "en": "2 seconds",
+            "fr": "2 secondes",
+            "de": "2 Sekunden",
+            "es": "2 segundos"
+          }
+        },
+        {
+          "value": "5",
+          "label": {
+            "en": "5 seconds",
+            "fr": "5 secondes",
+            "de": "5 Sekunden",
+            "es": "5 segundos"
+          }
+        },
+        {
+          "value": "10",
+          "label": {
+            "en": "10 seconds",
+            "fr": "10 secondes",
+            "de": "10 Sekunden",
+            "es": "10 segundos"
+          }
+        },
+        {
+          "value": "30",
+          "label": {
+            "en": "30 seconds",
+            "fr": "30 secondes",
+            "de": "30 Sekunden",
+            "es": "30 segundos"
+          }
+        },
+        {
+          "value": "60",
+          "label": {
+            "en": "1 minute",
+            "fr": "1 minute",
+            "de": "1 Minute",
+            "es": "1 minuto"
+          }
+        }
+      ]
+    },
+    {
+      "key": "allow_write",
+      "type": "boolean",
+      "label": {
+        "en": "Allow writing",
+        "fr": "Autoriser l'écriture",
+        "de": "Schreiben erlauben",
+        "es": "Permitir la escritura"
+      },
+      "description": {
+        "en": "Off by default. When on, only the variables declared \"write\" (or switch, setpoint) can be changed from Gladys.",
+        "fr": "Désactivée par défaut. Activée, seules les variables déclarées « write » (ou switch, setpoint) peuvent être modifiées depuis Gladys.",
+        "de": "Standardmäßig aus. Wenn aktiv, können nur die als „write“ (oder switch, setpoint) deklarierten Variablen aus Gladys geändert werden.",
+        "es": "Desactivada por defecto. Activada, solo las variables declaradas «write» (o switch, setpoint) pueden modificarse desde Gladys."
+      },
+      "required": false,
+      "default": false
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
+      "key": "check_config",
+      "label": {
+        "en": "Check the configuration",
+        "fr": "Vérifier la configuration",
+        "de": "Konfiguration prüfen",
+        "es": "Comprobar la configuración"
+      },
+      "description": {
+        "en": "Says whether the PLC answers, and lists the mistakes entry by entry.",
+        "fr": "Dit si l'automate répond, et liste les erreurs entrée par entrée.",
+        "de": "Sagt, ob die SPS antwortet, und listet die Fehler Eintrag für Eintrag auf.",
+        "es": "Indica si el PLC responde y enumera los errores entrada por entrada."
+      },
+      "timeout_seconds": 15
     },
     {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
+      "key": "read_address",
+      "label": {
+        "en": "Read an address",
+        "fr": "Lire une adresse",
+        "de": "Adresse lesen",
+        "es": "Leer una dirección"
+      },
+      "description": {
+        "en": "Reads any address once, to find the right one before declaring it.",
+        "fr": "Lit une adresse quelconque une fois, pour trouver la bonne avant de la déclarer.",
+        "de": "Liest eine beliebige Adresse einmal, um die richtige zu finden, bevor du sie deklarierst.",
+        "es": "Lee una dirección cualquiera una vez, para encontrar la correcta antes de declararla."
+      },
+      "timeout_seconds": 15,
       "fields": [
         {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
+          "key": "address",
+          "type": "string",
+          "label": {
+            "en": "Address",
+            "fr": "Adresse",
+            "de": "Adresse",
+            "es": "Dirección"
+          },
+          "placeholder": {
+            "en": "e.g. DB1,REAL0 or VW10",
+            "fr": "ex. DB1,REAL0 ou VW10",
+            "de": "z. B. DB1,REAL0 oder VW10",
+            "es": "p. ej. DB1,REAL0 o VW10"
+          },
+          "required": true
+        }
+      ]
+    },
+    {
+      "key": "write_value",
+      "label": {
+        "en": "Write a value",
+        "fr": "Écrire une valeur",
+        "de": "Wert schreiben",
+        "es": "Escribir un valor"
+      },
+      "description": {
+        "en": "Writes to a variable declared \"write\", once writing is allowed.",
+        "fr": "Écrit dans une variable déclarée « write », une fois l'écriture autorisée.",
+        "de": "Schreibt in eine als „write“ deklarierte Variable, sobald Schreiben erlaubt ist.",
+        "es": "Escribe en una variable declarada «write», una vez permitida la escritura."
+      },
+      "timeout_seconds": 20,
+      "fields": [
+        {
+          "key": "variable",
+          "type": "string",
+          "label": {
+            "en": "Variable",
+            "fr": "Variable",
+            "de": "Variable",
+            "es": "Variable"
+          },
+          "description": {
+            "en": "Its name or its address.",
+            "fr": "Son nom ou son adresse.",
+            "de": "Name oder Adresse der Variable.",
+            "es": "Su nombre o su dirección."
+          },
+          "placeholder": {
+            "en": "e.g. Boiler setpoint",
+            "fr": "ex. Consigne chaudière",
+            "de": "z. B. Kessel-Sollwert",
+            "es": "p. ej. Consigna caldera"
+          },
+          "required": true
+        },
+        {
+          "key": "value",
+          "type": "string",
+          "label": {
+            "en": "Value",
+            "fr": "Valeur",
+            "de": "Wert",
+            "es": "Valor"
+          },
+          "description": {
+            "en": "A number, or 0 / 1 (true / false) for a bit.",
+            "fr": "Un nombre, ou 0 / 1 (true / false) pour un bit.",
+            "de": "Eine Zahl oder 0 / 1 (true / false) für ein Bit.",
+            "es": "Un número, o 0 / 1 (true / false) para un bit."
+          },
           "required": true
         }
       ]
@@ -103,75 +528,252 @@
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "plc_disconnected",
+      "label": {
+        "en": "The PLC is lost",
+        "fr": "L'automate est perdu",
+        "de": "Die SPS ist weg",
+        "es": "Se pierde el PLC"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "The connection to the PLC dropped (PLC off, network cut, STOP with reset).",
+        "fr": "La connexion à l'automate est tombée (automate éteint, réseau coupé, redémarrage).",
+        "de": "Die Verbindung zur SPS ist abgebrochen (SPS aus, Netzwerk getrennt, Neustart).",
+        "es": "Se cayó la conexión con el PLC (PLC apagado, red cortada, reinicio)."
       },
       "fields": [
         {
           "key": "device",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
-        },
-        {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
-          "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
-          ]
+          "label": {
+            "en": "PLC (empty: any)",
+            "fr": "Automate (vide : n'importe lequel)",
+            "de": "SPS (leer: beliebig)",
+            "es": "PLC (vacío: cualquiera)"
+          }
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "device_name",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "PLC name",
+            "fr": "Nom de l'automate",
+            "de": "Name der SPS",
+            "es": "Nombre del PLC"
+          }
+        },
+        {
+          "key": "error",
+          "type": "string",
+          "label": {
+            "en": "Error",
+            "fr": "Erreur",
+            "de": "Fehler",
+            "es": "Error"
+          }
+        }
+      ]
+    },
+    {
+      "key": "plc_reconnected",
+      "label": {
+        "en": "The PLC is back",
+        "fr": "L'automate est revenu",
+        "de": "Die SPS ist zurück",
+        "es": "El PLC ha vuelto"
+      },
+      "description": {
+        "en": "The connection to the PLC is up again after a loss.",
+        "fr": "La connexion à l'automate est rétablie après une perte.",
+        "de": "Die Verbindung zur SPS steht nach einem Abbruch wieder.",
+        "es": "La conexión con el PLC se ha restablecido tras una pérdida."
+      },
+      "fields": [
+        {
+          "key": "device",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "PLC (empty: any)",
+            "fr": "Automate (vide : n'importe lequel)",
+            "de": "SPS (leer: beliebig)",
+            "es": "PLC (vacío: cualquiera)"
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "device_name",
+          "type": "string",
+          "label": {
+            "en": "PLC name",
+            "fr": "Nom de l'automate",
+            "de": "Name der SPS",
+            "es": "Nombre del PLC"
+          }
+        }
+      ]
+    },
+    {
+      "key": "variable_error",
+      "label": {
+        "en": "A PLC variable becomes unreadable",
+        "fr": "Une variable de l'automate devient illisible",
+        "de": "Eine SPS-Variable wird unlesbar",
+        "es": "Una variable del PLC deja de poder leerse"
+      },
+      "description": {
+        "en": "The PLC refuses a declared address (DB deleted or shortened by a new program, access denied).",
+        "fr": "L'automate refuse une adresse déclarée (DB supprimé ou raccourci par un nouveau programme, accès refusé).",
+        "de": "Die SPS lehnt eine deklarierte Adresse ab (DB durch ein neues Programm gelöscht oder gekürzt, Zugriff verweigert).",
+        "es": "El PLC rechaza una dirección declarada (DB borrado o acortado por un nuevo programa, acceso denegado)."
+      },
+      "fields": [
+        {
+          "key": "device",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "PLC (empty: any)",
+            "fr": "Automate (vide : n'importe lequel)",
+            "de": "SPS (leer: beliebig)",
+            "es": "PLC (vacío: cualquiera)"
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "device_name",
+          "type": "string",
+          "label": {
+            "en": "PLC name",
+            "fr": "Nom de l'automate",
+            "de": "Name der SPS",
+            "es": "Nombre del PLC"
+          }
+        },
+        {
+          "key": "variable_name",
+          "type": "string",
+          "label": {
+            "en": "Variable name",
+            "fr": "Nom de la variable",
+            "de": "Name der Variable",
+            "es": "Nombre de la variable"
+          }
+        },
+        {
+          "key": "error",
+          "type": "string",
+          "label": {
+            "en": "Error",
+            "fr": "Erreur",
+            "de": "Fehler",
+            "es": "Error"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "write_value",
+      "label": {
+        "en": "Write a PLC variable",
+        "fr": "Écrire une variable de l'automate",
+        "de": "SPS-Variable schreiben",
+        "es": "Escribir una variable del PLC"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "Writes a value to a variable declared \"write\", once writing is allowed.",
+        "fr": "Écrit une valeur dans une variable déclarée « write », une fois l'écriture autorisée.",
+        "de": "Schreibt einen Wert in eine als „write“ deklarierte Variable, sobald Schreiben erlaubt ist.",
+        "es": "Escribe un valor en una variable declarada «write», una vez permitida la escritura."
+      },
+      "timeout_seconds": 20,
       "fields": [
         {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
+          "key": "variable",
+          "type": "string",
+          "label": {
+            "en": "Variable (name or address)",
+            "fr": "Variable (nom ou adresse)",
+            "de": "Variable (Name oder Adresse)",
+            "es": "Variable (nombre o dirección)"
+          },
           "required": true
-        }
-      ],
-      "outputs": [
+        },
         {
-          "key": "signalled",
-          "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "key": "value",
+          "type": "string",
+          "label": {
+            "en": "Value",
+            "fr": "Valeur",
+            "de": "Wert",
+            "es": "Valor"
+          },
+          "required": true
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "plc_overview",
+      "label": {
+        "en": "Siemens PLC",
+        "fr": "Automate Siemens",
+        "de": "Siemens-SPS",
+        "es": "PLC Siemens"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "description": {
+        "en": "The first values of the PLC and the health of its link.",
+        "fr": "Les premières valeurs de l'automate et l'état de sa liaison.",
+        "de": "Die ersten Werte der SPS und der Zustand ihrer Verbindung.",
+        "es": "Los primeros valores del PLC y el estado de su enlace."
+      },
+      "icon": "cpu",
+      "settings": [
+        {
+          "key": "device",
+          "type": "select",
+          "source": "devices",
+          "required": true,
+          "label": {
+            "en": "PLC",
+            "fr": "Automate",
+            "de": "SPS",
+            "es": "PLC"
+          }
+        },
+        {
+          "key": "hide_values",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "label": {
+            "en": "Hide the values",
+            "fr": "Masquer les valeurs",
+            "de": "Werte ausblenden",
+            "es": "Ocultar los valores"
+          }
+        },
+        {
+          "key": "hide_status",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "label": {
+            "en": "Hide the link status",
+            "fr": "Masquer l'état de la liaison",
+            "de": "Verbindungsstatus ausblenden",
+            "es": "Ocultar el estado del enlace"
+          }
+        }
+      ]
     }
   ]
 }

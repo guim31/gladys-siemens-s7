@@ -1,61 +1,221 @@
-# Demo Devices Template
+# Siemens S7
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+Read and write the variables of a Siemens PLC from Gladys, on your local
+network: S7-300, S7-400, S7-1200, S7-1500, ET 200SP CPUs and LOGO! 0BA7 / 0BA8.
+The integration speaks the S7 protocol (S7comm over ISO-on-TCP, port 102),
+the one Siemens HMIs and engineering tools use.
+
+> **Developed without the hardware: feedback welcome.** It was tested against
+> the Snap7 S7 server, not against a real PLC. Tell us on the Gladys forum how
+> it behaves with yours.
 
 ## What you get
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+- One Gladys device for the PLC, one feature per variable you declare: a
+  temperature, a counter, a bit of a DB, an input, an output, a LOGO! V memory
+  word.
+- Values read at the pace you choose (1 second to 1 minute), all variables at
+  once in as few requests as the PLC allows; only the changes are sent to Gladys.
+- On demand, writing a value to the variables you declare writable: a switch or
+  a setpoint on the dashboard, an action, a scene.
+- Scene triggers when the PLC is lost or back, or when an address becomes
+  unreadable, and a dashboard widget with the health of the link.
+
+## Requirements
+
+- Gladys 5.1 or later.
+- The PLC on the same network as Gladys, port 102 reachable, with a **fixed IP
+  address**.
+- For an S7-1200 or S7-1500: PUT/GET access allowed (see below).
+- For a LOGO!: a server connection set in LOGO!Soft Comfort (see below).
 
 ## Configuration
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+Install the integration (**Integrations → Install from GitHub**, address
+`https://github.com/guim31/gladys-siemens-s7`), open its **Configuration**
+tab, fill the fields, save, then add the PLC from the **Discovery** tab.
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+### PLC
+
+- **PLC IP address**: the address of the CPU (or of its Ethernet module).
+- **TCP port**: 102, always, unless a gateway forwards another port.
+- **PLC type**: sets how the CPU is reached. S7-1200, S7-1500 and ET 200SP:
+  rack 0, slot 1. S7-300: rack 0, slot 2. LOGO!: the TSAPs below. **Other**:
+  the **Rack** and **Slot** fields (an S7-400 CPU is often in slot 3; check the
+  hardware configuration of your project).
+
+Gladys identifies the PLC by its address and port: changing the address
+creates a new device.
+
+### S7-1200 and S7-1500: PUT/GET
+
+These CPUs refuse outside reads until you allow them, in TIA Portal:
+
+1. CPU properties → **Protection & Security** → **Connection mechanisms**:
+   tick **Permit access with PUT/GET communication from remote partner**.
+2. For every DB you want to read: block properties → **Attributes**, untick
+   **Optimized block access**, then compile. An optimized DB has no fixed
+   addresses: its variables cannot be read by address.
+3. Download the project to the CPU.
+
+Without step 1, the Configuration screen says that the CPU refuses the reads.
+
+### LOGO!
+
+In LOGO!Soft Comfort, **Tools → Ethernet Connections**, add a **Server
+connection** (S7 connection), tick **Accept all connection requests**, and
+note the two TSAPs:
+
+- **Local TSAP** of the LOGO! (usually `02.00`): the field **LOGO! local TSAP
+  (server side)**.
+- **Remote TSAP** (usually `01.00`): the field **LOGO! remote TSAP (client
+  side)**.
+
+Download the program to the LOGO!. Its variable memory (VM) is DB1 for the S7
+protocol: `VW10` is the word at VM address 10. Map the values you want to see
+(analog inputs, flags, counters) to VM in **Tools → Parameter VM Mapping**
+(LOGO! 8).
+
+### Variables
+
+The **Variables** field holds the variables to read, separated by semicolons:
+
+```
+Name: address kind write option=value
+```
+
+Only the address is required. Examples:
+
+```
+Boiler: DB1,REAL0 temperature; Pump: Q0.1 switch; Setpoint: DB1,REAL4 setpoint min=5 max=30; Level: VW10 scale=0.1 unit=%
+```
+
+- **Name**: the name of the feature in Gladys (40 characters at most). Without
+  `Name:`, the variable is named after its address.
+- **Kind**: what the value is, which sets its icon and unit in Gladys:
+  `temperature`, `humidity`, `pressure`, `power`, `energy` (an index, in kWh in
+  Gladys), `production`, `solar_power`, `grid_power`, `voltage`, `current`,
+  `battery`, `volume`, `duration`, `value` (a plain number, the default),
+  `binary` (an on/off state, the default for a bit), `switch` (an on/off you can
+  change), `setpoint` (a temperature you can change).
+- **write**: the variable may be written from Gladys (see Writing).
+- **Options**: `scale=` and `offset=` (value shown = raw × scale + offset, so
+  `scale=0.1` turns 215 into 21.5), `unit=` (°C, %, W, kWh, Wh, V, A, bar, L,
+  m3, s, min, h...), `min=` and `max=` (the range shown, and the limits of a
+  write), `precision=` (decimals kept).
+
+Up to 100 variables. **Check the configuration** lists the mistakes entry by
+entry.
+
+### Addresses
+
+| Address                                         | Type                               | Range                      |
+| ----------------------------------------------- | ---------------------------------- | -------------------------- |
+| `DB1,X0.1` or `DB1.DBX0.1`                      | bit                                | 0 / 1                      |
+| `DB1,BYTE2` or `DB1.DBB2`                       | BYTE                               | 0 to 255                   |
+| `DB1,WORD4` or `DB1.DBW4`                       | WORD (unsigned)                    | 0 to 65535                 |
+| `DB1,INT6`                                      | INT (signed)                       | -32768 to 32767            |
+| `DB1,DWORD8` or `DB1.DBD8`                      | DWORD                              | 0 to 4294967295            |
+| `DB1,DINT8`                                     | DINT                               | -2147483648 to 2147483647  |
+| `DB1,REAL12`                                    | REAL                               | 32-bit floating point      |
+| `DB1,LREAL16`                                   | LREAL                              | 64-bit (S7-1200/1500 only) |
+| `M0.1`, `I0.0` (`E0.0`), `Q0.1` (`A0.1`)        | bit                                | 0 / 1                      |
+| `MB10`, `MW10`, `MI10`, `MD10`, `MDI10`, `MR10` | BYTE, WORD, INT, DWORD, DINT, REAL |                            |
+| `V10.0`, `VB10`, `VW10`, `VI10`, `VD10`, `VR10` | LOGO! VM (DB1)                     |                            |
+
+The address sets the type: `DB1.DBD8` is a DWORD, read as an integer. For a
+REAL, write `DB1,REAL8` (or `MR8`, `VR8`). A WORD is unsigned: for a negative
+value stored as INT, write `DB1,INT6` or `MI10`.
+
+### Writing
+
+Writing is **off** until you turn on **Allow writing**. Even then, only the
+variables declared `write` (or of kind `switch` or `setpoint`) can be changed:
+
+- a `switch` shows an on/off toggle on the dashboard, a `setpoint` a setpoint
+  control; other writable variables are written by the **Write a value** action
+  or the scene action;
+- a bit is written alone: the other bits of its byte stay as they are;
+- the value is checked against `min`/`max` (by default, the range of the kind:
+  ±1,000,000 for `value`, 0 to 100 for `setpoint`) and the range of the type
+  before being sent; a number like `1,000` is refused as ambiguous; then read back, so the dashboard shows what the PLC really holds.
+
+**Writing a wrong variable can stop or damage an installation.** Declare
+writable only what Gladys must change, and keep safety functions in the PLC
+program. On purpose, nothing is exposed as a switch or a thermostat to voice
+assistants.
 
 ## Actions
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+On the Configuration screen:
+
+- **Check the configuration**: whether the PLC answers, how many variables
+  it reads, and the mistakes entry by entry.
+- **Read an address**: reads any address once, declared or not, to find the
+  right one before declaring it.
+- **Write a value**: writes to a declared writable variable, by name or address.
 
 ## Scenes
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
-
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+- Triggers (Gladys 5.1 or later): **The PLC is lost** (with the reason),
+  **The PLC is back**, **A PLC variable becomes unreadable** (a DB deleted or
+  shortened by a new PLC program, with the name of the variable). The values
+  themselves trigger scenes as any Gladys device does.
+- Action: **Write a PLC variable**, with a variable (name or address) and a
+  value.
 
 ## Dashboard
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+The **Siemens PLC** widget shows the first six values of the PLC and the health
+of the link: connected or not, how many variables are readable, the time of the
+last reading and how long it took. Each block can be hidden in the widget
+settings.
+
+## Siemens S7, Modbus or OPC UA?
+
+- **This integration** reads the memory of the PLC by address, with nothing to
+  program on the PLC side (except PUT/GET on S7-1200/1500). The simplest way
+  for a LOGO!, an S7-300/400 or an S7-1200.
+- **[Modbus](https://github.com/guim31/gladys-modbus)**: a LOGO! 8 (from FS4)
+  and some S7-1200 programs also speak Modbus TCP. Choose it when the PLC is
+  already set up as a Modbus server.
+- **[OPC UA](https://github.com/guim31/gladys-opcua)**: an S7-1500 (and an
+  S7-1200 from firmware 4.4) has an OPC UA server, with named variables,
+  optimized DBs and security. Choose it when you can turn that server on.
+
+## Limits
+
+- One PLC per installation of the integration.
+- Numbers and bits only: no STRING, DATE_AND_TIME, arrays, timers or counters
+  (`T`, `C`).
+- Optimized DBs of S7-1200/1500 cannot be read by address (see PUT/GET).
+- S7-1200/1500 with a protection level that forbids PUT/GET, and S7-200 (PPI)
+  are not supported.
+- No secure connection: the S7 protocol has none; keep the PLC on a trusted
+  network.
+- Gladys accepts 300 values a minute: with many variables, the values are
+  sent less often than they are read.
 
 ## Troubleshooting
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+- **The PLC does not answer on port 102**: check the address, that Gladys and
+  the PLC are on the same network, and that no firewall blocks port 102.
+- **The PLC refuses the connection**: wrong PLC type, rack/slot or TSAP. For a
+  LOGO!, check the server connection in LOGO!Soft Comfort and that the program
+  was downloaded.
+- **The CPU refuses the reads**: allow PUT/GET (see above).
+- **Address out of range**: the DB is shorter than the address, it is
+  optimized, or the program does not have it.
+- The logs of the integration (Gladys → Integrations → Siemens S7) say more
+  with the environment variable `LOG_LEVEL=debug`.
+
+## Credits
+
+The S7 client of this integration is written from the public descriptions of
+the protocol: [Snap7](https://snap7.sourceforge.net/) by Davide Nardella,
+[nodes7](https://github.com/plcpeople/nodeS7) (MIT) by plcpeople, and the
+s7comm dissector of Wireshark. It was tested against the Snap7 server through
+[python-snap7](https://github.com/gijzelaerr/python-snap7) (MIT).
+
+Siemens, SIMATIC, S7 and LOGO! are trademarks of Siemens AG. This integration is
+not affiliated with Siemens.

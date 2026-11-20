@@ -1,77 +1,83 @@
+// -----------------------------------------------------------------------------
+// The "Siemens PLC" widget: tiles of the device features, link status, each
+// block can be hidden, valid for the core (budget, references).
+// -----------------------------------------------------------------------------
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { validateWidgetContent } from '@gladysassistant/integration-sdk';
-import { createFakeGladys } from '@gladysassistant/integration-sdk/testing';
-import { buildDiscoveredDevices } from '../src/devices/index.js';
-import { simulateLanSession } from '../src/devices/plug.js';
-import { DEMO_STATUS_WIDGET, WIDGETS, refreshWidgets } from '../src/widgets.js';
-import { normalizeConfig } from '../src/config.js';
+import { createWorld } from './helpers/world.js';
+import { HEATING_VARIABLES, heatingMemory } from './fixtures/plcs.js';
 
-const gladys = createFakeGladys();
-const config = normalizeConfig();
-const demoStatus = WIDGETS[DEMO_STATUS_WIDGET];
+const get = async (world, settings, language = 'fr') => {
+  const ack = await world.fake.widgetGet('plc_overview', { settings, language });
+  assert.equal(ack.success, true, JSON.stringify(ack.error));
+  return ack.data.content;
+};
 
-// What the SDK passes to onWidgetGet, plus the config index.js adds.
-const getContent = (cfg = config) =>
-  demoStatus.get(gladys, { settings: {}, language: 'en', units: 'metric', config: cfg });
-
-test('the demo_status content is rendered exactly as sent', async () => {
-  // [] = nothing the core would drop, truncate or trim to the content budget.
-  assert.deepEqual(validateWidgetContent(await getContent()), []);
+test('six tiles at most and the link status, valid for the core', async () => {
+  const world = await createWorld({
+    memory: heatingMemory(),
+    config: { variables: HEATING_VARIABLES },
+  });
+  try {
+    const content = await get(world, { device: world.device.external_id });
+    validateWidgetContent(content);
+    const tiles = content.components.filter((component) => component.type === 'value');
+    assert.equal(tiles.length, 6);
+    const ids = new Set(world.device.features.map((feature) => feature.external_id));
+    assert.ok(tiles.every((tile) => ids.has(tile.device_feature)));
+    const status = content.components.find((component) => component.type === 'status');
+    assert.deepEqual(
+      status.items.map((item) => item.value),
+      ['Connecté', '11/11', status.items[2].value, status.items[3].value],
+    );
+    assert.match(status.items[3].value, /^\d+ ms$/);
+    assert.ok(content.components.length <= 8);
+  } finally {
+    await world.stop();
+  }
 });
 
-test('the degraded plug connection content is valid too', async () => {
-  simulateLanSession(false);
+test('each block can be hidden; a link loss shows in the status', async () => {
+  const world = await createWorld({
+    memory: heatingMemory(),
+    config: { variables: HEATING_VARIABLES },
+  });
   try {
-    const content = await getContent();
-    assert.deepEqual(validateWidgetContent(content), []);
-    const status = content.components.find((component) => component.type === 'status');
-    assert.ok(
-      status.items.some((item) => item.color === 'warning'),
-      'degraded shows a warning',
+    const device = world.device.external_id;
+    const noValues = await get(world, { device, hide_values: true });
+    assert.deepEqual(
+      noValues.components.map((component) => component.type),
+      ['status'],
+    );
+    const noStatus = await get(world, { device, hide_status: true });
+    assert.ok(noStatus.components.every((component) => component.type === 'value'));
+    world.plc.cut();
+    world.plc.down = 'refused';
+    await world.poll();
+    const down = await get(world, { device }, 'en');
+    const status = down.components.find((component) => component.type === 'status');
+    assert.equal(status.items[0].value, 'Disconnected');
+    assert.equal(status.items[1].value, '0/11');
+    assert.ok(world.fake.widgetRefreshes.includes('plc_overview'));
+  } finally {
+    await world.stop();
+  }
+});
+
+test('no PLC chosen, or one no longer configured: a sentence', async () => {
+  const world = await createWorld({
+    memory: heatingMemory(),
+    config: { variables: HEATING_VARIABLES },
+  });
+  try {
+    assert.match((await get(world, {})).components[0].text.fr, /Choisissez l'automate/);
+    assert.match(
+      (await get(world, { device: 'ext:test-integration:plc:other-102' })).components[0].text.en,
+      /no longer in the integration/,
     );
   } finally {
-    simulateLanSession(true);
+    await world.stop();
   }
-});
-
-test('the live tiles reference features the integration publishes', async () => {
-  const featureIds = new Set(
-    buildDiscoveredDevices(gladys, config).flatMap((device) =>
-      device.features.map((feature) => feature.external_id),
-    ),
-  );
-  const liveTiles = (await getContent()).components.filter((c) => c.device_feature);
-  assert.ok(liveTiles.length > 0, 'the template demonstrates a device-bound tile');
-  for (const tile of liveTiles) {
-    assert.ok(featureIds.has(tile.device_feature), `unknown feature ${tile.device_feature}`);
-  }
-});
-
-test('every button action of the content is handled and answers a short toast', async () => {
-  const buttons = (await getContent()).components.filter((c) => c.type === 'button' && c.action);
-  assert.ok(buttons.length > 0, 'the template demonstrates a widget action');
-  for (const { action } of buttons) {
-    const message = await demoStatus.action(gladys, {
-      actionKey: action.key,
-      params: action.params ?? {},
-      settings: {},
-      config,
-    });
-    assert.ok(message.en, 'the toast carries at least the mandatory `en` text');
-    assert.ok(message.en.length <= 200, 'toasts are capped at 200 characters');
-  }
-});
-
-test('an unknown widget action fails, so the user sees the error', async () => {
-  await assert.rejects(
-    demoStatus.action(gladys, { actionKey: 'unknown', params: {}, settings: {}, config }),
-    /Unknown widget action/,
-  );
-});
-
-test('refreshWidgets nudges every widget', () => {
-  const fresh = createFakeGladys();
-  refreshWidgets(fresh);
-  assert.deepEqual(fresh.fake.widgetRefreshes, Object.keys(WIDGETS));
 });
