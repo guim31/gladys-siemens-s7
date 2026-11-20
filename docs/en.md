@@ -136,8 +136,9 @@ variables declared `write` (or of kind `switch` or `setpoint`) can be changed:
   control; other writable variables are written by the **Write a value** action
   or the scene action;
 - a bit is written alone: the other bits of its byte stay as they are;
-- the value is checked against `min`/`max` and the range of the type before
-  being sent, then read back, so the dashboard shows what the PLC really holds.
+- the value is checked against `min`/`max` (by default, the range of the kind:
+  ±1,000,000 for `value`, 0 to 100 for `setpoint`) and the range of the type
+  before being sent; a number like `1,000` is refused as ambiguous; then read back, so the dashboard shows what the PLC really holds.
 
 **Writing a wrong variable can stop or damage an installation.** Declare
 writable only what Gladys must change, and keep safety functions in the PLC

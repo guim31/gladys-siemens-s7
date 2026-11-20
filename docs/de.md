@@ -145,8 +145,10 @@ und `setpoint`) ändern:
   schreiben** oder der Szenen-Aktion geschrieben;
 - ein Bit wird allein geschrieben: Die anderen Bits seines Bytes bleiben, wie
   sie sind;
-- der Wert wird vor dem Senden gegen `min`/`max` und den Bereich des Typs
-  geprüft und danach zurückgelesen, damit das Dashboard zeigt, was die SPS
+- der Wert wird vor dem Senden gegen `min`/`max` (standardmäßig der Bereich der
+  Art: ±1.000.000 für `value`, 0 bis 100 für `setpoint`) und den Bereich des Typs
+  geprüft; eine Zahl wie `1,000` wird als mehrdeutig abgelehnt; danach wird er
+  zurückgelesen, damit das Dashboard zeigt, was die SPS
   wirklich enthält.
 
 **Eine falsche Variable zu schreiben kann eine Anlage stoppen oder

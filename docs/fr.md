@@ -144,7 +144,9 @@ l'écriture**. Même alors, seules les variables déclarées `write` (ou de natu
   commande de consigne ; les autres variables modifiables s'écrivent par
   l'action **Écrire une valeur** ou l'action de scène ;
 - un bit est écrit seul : les autres bits de son octet ne bougent pas ;
-- la valeur est vérifiée contre `min`/`max` et la plage du type avant l'envoi,
+- la valeur est vérifiée contre `min`/`max` (par défaut, la plage de la nature :
+  ±1 000 000 pour `value`, 0 à 100 pour `setpoint`) et la plage du type avant
+  l'envoi ; un nombre comme `1,000` est refusé car ambigu ;
   puis relue, pour que le tableau de bord montre ce que l'automate contient
   vraiment.
 

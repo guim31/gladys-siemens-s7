@@ -58,8 +58,9 @@ export class WriteError extends Error {
 export function toWrite(variable, input) {
   const { type } = variable.address;
   const typed = String(input).trim();
-  // "1,000" is a thousand in English, 1 in French: refused rather than guessed.
-  if (/^-?\d{1,3}(,\d{3})+$/.test(typed) || (typed.includes(',') && typed.includes('.'))) {
+  // "1,000" is a thousand in English, 1 in French: refused rather than guessed
+  // ("0,125" can only be a decimal comma).
+  if (/^-?[1-9]\d{0,2}(,\d{3})+$/.test(typed) || (typed.includes(',') && typed.includes('.'))) {
     throw new WriteError('ambiguous', { value: typed.slice(0, 30) });
   }
   const text = typed.replace(',', '.').toLowerCase();

@@ -145,8 +145,9 @@ Incluso entonces, solo las variables declaradas `write` (o de tipo `switch` o
   consigna; las demás variables modificables se escriben con la acción
   **Escribir un valor** o la acción de escena;
 - un bit se escribe solo: los demás bits de su byte no cambian;
-- el valor se comprueba contra `min`/`max` y el rango del tipo antes de
-  enviarlo, y luego se vuelve a leer, para que el panel muestre lo que el PLC
+- el valor se comprueba contra `min`/`max` (por defecto, el rango del tipo de
+  valor: ±1 000 000 para `value`, 0 a 100 para `setpoint`) y el rango del tipo
+  de dato antes de enviarlo; un número como `1,000` se rechaza por ambiguo; y luego se vuelve a leer, para que el panel muestre lo que el PLC
   contiene realmente.
 
 **Escribir una variable equivocada puede detener o dañar una instalación.**

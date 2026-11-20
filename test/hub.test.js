@@ -467,6 +467,10 @@ test('a write is bounded by the range the feature shows, even without min/max', 
     const mixed = await world.fake.action('write_value', { variable: 'Count', value: '1.000,5' });
     assert.match(mixed.error.en, /ambiguous/);
     assert.equal(world.plc.memory.DB[10].readInt32BE(18), 1234567);
+    // "0,5" can only be a decimal comma.
+    const half = await world.fake.action('write_value', { variable: 'Sp', value: '0,125' });
+    assert.equal(half.success, true, JSON.stringify(half.error));
+    assert.equal(world.plc.memory.DB[10].readFloatBE(12), 0.125);
   } finally {
     await world.stop();
   }
